@@ -9,14 +9,14 @@ from models.environment import EnvironmentGraph
 
 
 def main() -> None:
-    """Bootstrap the dispatch system."""
-    # TODO: Load data, initialize environment, and start dispatcher.
-    state_manager = StateManager()
-    optimizer = SimulatedAnnealingOptimizer()
-    environment = EnvironmentGraph(nodes=[], edges={})
-    dispatcher = Dispatcher(state_manager, optimizer, environment)
-    dispatcher.start()
+	"""Bootstrap the dispatch system."""
+	# TODO: Load data, initialize environment, and start dispatcher.
+	state_manager = StateManager()
+	optimizer = SimulatedAnnealingOptimizer()
+	environment = EnvironmentGraph(nodes=[], edges={})
+	dispatcher = Dispatcher(state_manager, optimizer, environment)
+	dispatcher.start()
 
 
 if __name__ == "__main__":
-    main()
+	main()

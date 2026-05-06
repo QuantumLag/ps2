@@ -4,11 +4,11 @@ from __future__ import annotations
 
 import csv
 import os
-import logging
 from datetime import datetime
-from typing import List
+from typing import Dict, List, Set, Tuple
 
 from models.agent import Agent
+from models.environment import EnvironmentGraph
 from models.order import Order
 from data.validator import MissingDataError, InvalidValueError
 from utils.logger import get_logger
@@ -68,3 +68,46 @@ class DataLoader:
                     
         logger.info(f"Successfully loaded {len(agents)} valid agents.")
         return agents
+    
+    @staticmethod
+    def load_environment(filepath: str) -> EnvironmentGraph:
+        """Load and validate environment graph from CSV with edges and distances."""
+        if not os.path.exists(filepath):
+            logger.error(f"Failed to load environment: {filepath} not found.")
+            raise MissingDataError(f"Required file missing: {filepath}")
+
+        nodes: Set[str] = set()
+        edges: Dict[Tuple[str, str], float] = {}
+        
+        with open(filepath, mode='r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row_num, row in enumerate(reader, start=2):
+                try:
+                    source = str(row['source']).strip()
+                    target = str(row['target']).strip()
+                    distance = float(row['distance'])
+                    
+                    # Validate distance
+                    if distance < 0:
+                        logger.warning(f"Negative distance at row {row_num}: {distance}. Skipping row.")
+                        continue
+                    
+                    # Add nodes and edge
+                    nodes.add(source)
+                    nodes.add(target)
+                    edges[(source, target)] = distance
+                    
+                except (KeyError, ValueError) as e:
+                    logger.warning(f"Malformed environment data at row {row_num}: {e}. Skipping row.")
+        
+        if not nodes or not edges:
+            logger.error("No valid environment data found.")
+            raise InvalidValueError("Environment graph has no valid nodes or edges.")
+        
+        logger.info(f"Successfully loaded environment: {len(nodes)} nodes, {len(edges)} edges.")
+        
+        # Create graph and precompute all-pairs shortest paths
+        environment = EnvironmentGraph(nodes=nodes, edges=edges)
+        environment.compute_distance_matrix()
+        
+        return environment
