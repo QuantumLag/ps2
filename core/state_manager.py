@@ -4,24 +4,6 @@ from models.agent import Agent
 from models.order import Order
 
 class StateManager:
-<<<<<<< HEAD
-    def __init__(self, agents_path: str = "", constraints_path: str = ""):
-        """
-        Initializes the system by loading the actual dataset files.
-        Addresses Issue 2 & 5.
-        
-        Args:
-            agents_path: Path to agents CSV. If empty, initializes empty registry.
-            constraints_path: Path to constraints CSV. If empty, uses defaults.
-        """
-        # Load the physical fleet and the operational rules[cite: 1]
-        if agents_path and constraints_path:
-            self.agents_df = pd.read_csv(agents_path)
-            self.constraints = pd.read_csv(constraints_path).set_index('constraint')['value'].to_dict()
-        else:
-            self.agents_df = pd.DataFrame()
-            self.constraints = {}
-=======
     """
     The 'Source of Truth' for the system. 
     Manages Issue 4 (Queueing) and Issue 5 (Registry).
@@ -29,7 +11,6 @@ class StateManager:
     def __init__(self, agents: List[Agent]):
         # Issue 5: Registry of all agents for O(1) lookup[cite: 4, 7]
         self.agents: Dict[str, Agent] = {a.agent_id: a for a in agents}
->>>>>>> c351852f95509c3fa2f05208a49afb9e69a333c1
         
         # Issue 4: Priority Queue (Min-Heap)
         self.order_queue = []
@@ -48,28 +29,18 @@ class StateManager:
 
     def pop_next_order(self) -> Optional[Order]:
         """Pop the next order from the priority queue."""
-        if not self.pending_orders:
+        if not self.order_queue:
             return None
-        return heapq.heappop(self.pending_orders)[2]
-
-    def assign_order(self, order_id: str, agent_id: str) -> None:
-        """Record an assignment between an order and an agent."""
-        # TODO: Update agent and order states.
-        self.active_assignments[order_id] = agent_id
-
-    def release_order(self, order_id: str) -> None:
-        """Release an order assignment."""
-        # TODO: Update agent and order states.
-        self.active_assignments.pop(order_id, None)
+        return heapq.heappop(self.order_queue)[2]
 
     def get_agent(self, agent_id: str) -> Optional[Agent]:
         """Retrieve a registered agent by ID."""
-        return self.agent_registry.get(agent_id)
+        return self.agents.get(agent_id)
 
     def list_agents(self) -> List[Agent]:
         """Return all registered agents."""
-        return list(self.agent_registry.values())
+        return list(self.agents.values())
 
     def list_pending_orders(self) -> List[Order]:
         """Return pending orders without mutating the queue."""
-        return [item[2] for item in self.pending_orders]
+        return [item[2] for item in self.order_queue]
