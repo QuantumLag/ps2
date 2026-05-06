@@ -1,41 +1,13 @@
-"""Validation logic for CSV ingests."""
+"""Custom exception classes and validation logic for data ingestion."""
 
-from __future__ import annotations
-
-from typing import Dict, List
-
-
-class ValidationError(Exception):
+class DataValidationError(Exception):
     """Base exception for data validation errors."""
+    pass
 
+class MissingDataError(DataValidationError):
+    """Raised when a required file or column is missing."""
+    pass
 
-class CSVSchemaError(ValidationError):
-    """Raised when a CSV is missing required columns."""
-
-
-class DataRangeError(ValidationError):
-    """Raised when values fall outside expected ranges."""
-
-
-class DataValidator:
-    """Validates incoming CSV data for all supported domains."""
-
-    def validate_agents(self, rows: List[Dict[str, str]]) -> None:
-        """Validate agent rows."""
-        # TODO: Implement schema and range validation.
-        pass
-
-    def validate_orders(self, rows: List[Dict[str, str]]) -> None:
-        """Validate order rows."""
-        # TODO: Implement schema and range validation.
-        pass
-
-    def validate_environment(self, rows: List[Dict[str, str]]) -> None:
-        """Validate environment rows."""
-        # TODO: Implement schema and range validation.
-        pass
-
-    def validate_constraints(self, rows: List[Dict[str, str]]) -> None:
-        """Validate constraint rows."""
-        # TODO: Implement schema and range validation.
-        pass
+class InvalidValueError(DataValidationError):
+    """Raised when a data field contains an invalid value or malformed type."""
+    pass

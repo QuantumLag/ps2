@@ -1,47 +1,70 @@
-"""CSV loading utilities."""
+"""Data ingestion layer for CSV processing."""
 
 from __future__ import annotations
 
 import csv
-from pathlib import Path
-from typing import Dict, List, Optional
+import os
+import logging
+from datetime import datetime
+from typing import List
 
-from .validator import DataValidator
+from models.agent import Agent
+from models.order import Order
+from data.validator import MissingDataError, InvalidValueError
+from utils.logger import get_logger
 
+logger = get_logger(__name__)
 
-class CSVLoader:
-    """Loads CSV files and runs validation."""
+class DataLoader:
+    """Handles parsing and validation of CSV inputs."""
 
-    def __init__(self, validator: Optional[DataValidator] = None) -> None:
-        self._validator = validator or DataValidator()
+    @staticmethod
+    def load_orders(filepath: str) -> List[Order]:
+        """Load and validate orders from CSV."""
+        if not os.path.exists(filepath):
+            logger.error(f"Failed to load orders: {filepath} not found.")
+            raise MissingDataError(f"Required file missing: {filepath}")
 
-    def load_csv(self, path: str | Path) -> List[Dict[str, str]]:
-        """Load a CSV file into a list of row dictionaries."""
-        # TODO: Add error handling and logging.
-        with Path(path).open(newline="", encoding="utf-8") as handle:
-            reader = csv.DictReader(handle)
-            return list(reader)
+        orders: List[Order] = []
+        with open(filepath, mode='r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row_num, row in enumerate(reader, start=2):
+                try:
+                    order = Order(
+                        order_id=row['order_id'],
+                        timestamp=datetime.strptime(row['timestamp'], "%Y-%m-%d %H:%M:%S"),
+                        location=(int(row['location_x']), int(row['location_y'])),
+                        prep_time_minutes=int(row['prep_time_minutes']),
+                        priority=row['priority'].lower(),
+                        sla_minutes=int(row['sla_minutes'])
+                    )
+                    orders.append(order)
+                except (KeyError, ValueError) as e:
+                    logger.warning(f"Malformed order data at row {row_num} (ID: {row.get('order_id', 'Unknown')}): {e}. Skipping row.")
+        
+        logger.info(f"Successfully loaded {len(orders)} valid orders.")
+        return orders
 
-    def load_agents(self, path: str | Path) -> List[Dict[str, str]]:
-        """Load and validate agent CSV data."""
-        rows = self.load_csv(path)
-        # TODO: Call self._validator.validate_agents(rows).
-        return rows
+    @staticmethod
+    def load_agents(filepath: str) -> List[Agent]:
+        """Load and validate agents from CSV."""
+        if not os.path.exists(filepath):
+            logger.error(f"Failed to load agents: {filepath} not found.")
+            raise MissingDataError(f"Required file missing: {filepath}")
 
-    def load_orders(self, path: str | Path) -> List[Dict[str, str]]:
-        """Load and validate order CSV data."""
-        rows = self.load_csv(path)
-        # TODO: Call self._validator.validate_orders(rows).
-        return rows
-
-    def load_environment(self, path: str | Path) -> List[Dict[str, str]]:
-        """Load and validate environment CSV data."""
-        rows = self.load_csv(path)
-        # TODO: Call self._validator.validate_environment(rows).
-        return rows
-
-    def load_constraints(self, path: str | Path) -> List[Dict[str, str]]:
-        """Load and validate constraint CSV data."""
-        rows = self.load_csv(path)
-        # TODO: Call self._validator.validate_constraints(rows).
-        return rows
+        agents: List[Agent] = []
+        with open(filepath, mode='r', encoding='utf-8') as file:
+            reader = csv.DictReader(file)
+            for row_num, row in enumerate(reader, start=2):
+                try:
+                    agent = Agent(
+                        agent_id=row['agent_id'],
+                        current_location=(int(row['current_x']), int(row['current_y'])),
+                        rating=float(row['rating'])
+                    )
+                    agents.append(agent)
+                except (KeyError, ValueError) as e:
+                    logger.warning(f"Malformed agent data at row {row_num} (ID: {row.get('agent_id', 'Unknown')}): {e}. Skipping row.")
+                    
+        logger.info(f"Successfully loaded {len(agents)} valid agents.")
+        return agents
