@@ -83,9 +83,17 @@ class DataLoader:
             reader = csv.DictReader(file)
             for row_num, row in enumerate(reader, start=2):
                 try:
-                    source = str(row['source']).strip()
-                    target = str(row['target']).strip()
-                    distance = float(row['distance'])
+                    # Handle both coordinate-based and node-based formats
+                    if 'from_x' in row and 'from_y' in row:
+                        # Coordinate-based format
+                        source = f"({row['from_x']},{row['from_y']})"
+                        target = f"({row['to_x']},{row['to_y']})"
+                        distance = float(row.get('distance_minutes', 0))
+                    else:
+                        # Node-based format
+                        source = str(row['source']).strip()
+                        target = str(row['target']).strip()
+                        distance = float(row['distance'])
                     
                     # Validate distance
                     if distance < 0:

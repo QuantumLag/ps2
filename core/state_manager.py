@@ -3,14 +3,22 @@ import heapq
 from typing import Dict, List, Tuple, Optional
 
 class StateManager:
-    def __init__(self, agents_path: str, constraints_path: str):
+    def __init__(self, agents_path: str = "", constraints_path: str = ""):
         """
         Initializes the system by loading the actual dataset files.
         Addresses Issue 2 & 5.
+        
+        Args:
+            agents_path: Path to agents CSV. If empty, initializes empty registry.
+            constraints_path: Path to constraints CSV. If empty, uses defaults.
         """
         # Load the physical fleet and the operational rules[cite: 1]
-        self.agents_df = pd.read_csv(agents_path)
-        self.constraints = pd.read_csv(constraints_path).set_index('constraint')['value'].to_dict()
+        if agents_path and constraints_path:
+            self.agents_df = pd.read_csv(agents_path)
+            self.constraints = pd.read_csv(constraints_path).set_index('constraint')['value'].to_dict()
+        else:
+            self.agents_df = pd.DataFrame()
+            self.constraints = {}
         
         # Dynamically set capacity from constraints.csv[cite: 1]
         self.max_capacity = int(self.constraints.get('max_active_orders_per_agent', 2))
