@@ -1,33 +1,55 @@
-# core/state_manager.py
 import heapq
-from typing import List, Dict
+from typing import List, Dict, Optional
 from models.agent import Agent
 from models.order import Order
 
 class StateManager:
+    """
+    The 'Source of Truth' for the system. 
+    Manages Issue 4 (Queueing) and Issue 5 (Registry).
+    """
     def __init__(self, agents: List[Agent]):
-        # Map for O(1) lookup of agents by ID
-        self.agents = {a.agent_id: a for a in agents}
-        self.order_queue = [] # Our Priority Heap[cite: 4]
+        # Issue 5: Registry of all agents for O(1) lookup[cite: 4, 7]
+        self.agents: Dict[str, Agent] = {a.agent_id: a for a in agents}
+        
+        # Issue 4: Priority Queue (Min-Heap)
+        self.order_queue = []
         self.priority_map = {"high": 0, "normal": 1, "low": 2}
 
     def add_orders_to_queue(self, orders: List[Order]):
-        """Issue 4: Sorting by Priority then Time[cite: 4]."""
+        """
+        Takes validated Order objects and pushes them into the priority heap.
+        Ensures High priority is popped before Normal/Low[cite: 4, 9].
+        """
         for order in orders:
-            p_val = self.priority_map.get(order.priority.lower(), 1)
-            # Heap sorts by priority, then arrival time[cite: 4]
-            heapq.heappush(self.order_queue, (p_val, order.timestamp, order))
+            # Map priority labels to integers
+            p_rank = self.priority_map.get(order.priority.lower(), 1)
+            # Tuple: (priority_rank, arrival_time, order_object)
+            heapq.heappush(self.order_queue, (p_rank, order.timestamp, order))
 
-    def get_pending_orders(self, batch_size: int = 10) -> List[Order]:
-        """Returns a batch of the highest priority orders for optimization."""
+    def get_available_agents(self) -> List[Agent]:
+        """
+        Issue 6: Filters the registry for agents who can accept more orders.
+        Uses the teammate's model method: can_accept()[cite: 3, 7].
+        """
+        return [a for a in self.agents.values() if a.can_accept()]
+
+    def get_next_batch(self, batch_size: int = 10) -> List[Order]:
+        """
+        Pops the top 'N' orders from the heap to send to the Optimizer.
+        Allows the 'Quantum' math to look at a cluster of orders.
+        """
         batch = []
         for _ in range(min(batch_size, len(self.order_queue))):
             batch.append(heapq.heappop(self.order_queue)[2])
         return batch
 
     def apply_assignments(self, assignments: Dict[str, str]):
-        """Issue 9: Linking orders to agents[cite: 4]."""
+        """
+        Issue 9: Officially links an Agent ID to an Order ID.
+        Updates the agent's internal list of active_orders[cite: 4, 7].
+        """
         for order_id, agent_id in assignments.items():
             agent = self.agents.get(agent_id)
-            if agent:
-                agent.assign_order(order_id) # Marks agent as busy[cite: 7]
+            if agent and agent.can_accept():
+                agent.assign_order(order_id) # Updates load and availability
