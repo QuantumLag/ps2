@@ -1,8 +1,10 @@
-import pandas as pd
 import heapq
-from typing import Dict, List, Tuple, Optional
+from typing import List, Dict, Optional
+from models.agent import Agent
+from models.order import Order
 
 class StateManager:
+<<<<<<< HEAD
     def __init__(self, agents_path: str = "", constraints_path: str = ""):
         """
         Initializes the system by loading the actual dataset files.
@@ -19,71 +21,55 @@ class StateManager:
         else:
             self.agents_df = pd.DataFrame()
             self.constraints = {}
+=======
+    """
+    The 'Source of Truth' for the system. 
+    Manages Issue 4 (Queueing) and Issue 5 (Registry).
+    """
+    def __init__(self, agents: List[Agent]):
+        # Issue 5: Registry of all agents for O(1) lookup[cite: 4, 7]
+        self.agents: Dict[str, Agent] = {a.agent_id: a for a in agents}
+>>>>>>> c351852f95509c3fa2f05208a49afb9e69a333c1
         
-        # Dynamically set capacity from constraints.csv[cite: 1]
-        self.max_capacity = int(self.constraints.get('max_active_orders_per_agent', 2))
-        
-        # Issue 5: The Agent Registry (The Status Board)[cite: 1]
-        self.agent_registry = {}
-        for _, row in self.agents_df.iterrows():
-            self.agent_registry[row['agent_id']] = {
-                "pos": (row['current_x'], row['current_y']),
-                "rating": row['rating'],
-                "active_orders": [],  # List of current order_ids being carried[cite: 1]
-                "completed_count": 0
-            }
-            
-        # Issue 4: The Priority Queue[cite: 1]
+        # Issue 4: Priority Queue (Min-Heap)
         self.order_queue = []
         self.priority_map = {"high": 0, "normal": 1, "low": 2}
 
-    def load_orders(self, orders_path: str):
+    def add_orders_to_queue(self, orders: List[Order]):
         """
-        Issue 1: Loads orders from CSV and organizes them by importance.
-        Addresses Issue 4 (Sorting) and Issue 16 (Validation)[cite: 1].
+        Takes validated Order objects and pushes them into the priority heap.
+        Ensures High priority is popped before Normal/Low[cite: 4, 9].
         """
-        orders_df = pd.read_csv(orders_path)
-        for _, row in orders_df.iterrows():
-            # Map priority labels to numbers for the heap sort[cite: 1]
-            p_val = self.priority_map.get(str(row['priority']).lower(), 1)
-            
-            # The heap stores: (Priority Rank, Timestamp, Order ID, Full Data)[cite: 1]
-            order_data = row.to_dict()
-            heapq.heappush(self.order_queue, (p_val, row['timestamp'], row['order_id'], order_data))
+        for order in orders:
+            # Map priority labels to integers
+            p_rank = self.priority_map.get(order.priority.lower(), 1)
+            # Tuple: (priority_rank, arrival_time, order_object)
+            heapq.heappush(self.order_queue, (p_rank, order.timestamp, order))
 
-    def get_next_order(self) -> Optional[dict]:
-        """Pops the most urgent order from the top of the heap[cite: 1]."""
-        if self.order_queue:
-            return heapq.heappop(self.order_queue)[3]
-        return None
+    def pop_next_order(self) -> Optional[Order]:
+        """Pop the next order from the priority queue."""
+        if not self.pending_orders:
+            return None
+        return heapq.heappop(self.pending_orders)[2]
 
-    def get_available_agents(self) -> List[str]:
-        """
-        Issue 6 & 11: Returns IDs of agents who have room for more orders.
-        If this returns an empty list, the system must wait[cite: 1].
-        """
-        return [aid for aid, info in self.agent_registry.items() 
-                if len(info['active_orders']) < self.max_capacity]
+    def assign_order(self, order_id: str, agent_id: str) -> None:
+        """Record an assignment between an order and an agent."""
+        # TODO: Update agent and order states.
+        self.active_assignments[order_id] = agent_id
 
-    def apply_assignment(self, agent_id: str, order_id: str):
-        """
-        Issue 9: Officially links an agent to an order.
-        Increments load and validates capacity[cite: 1].
-        """
-        if agent_id in self.agent_registry:
-            agent = self.agent_registry[agent_id]
-            if len(agent['active_orders']) < self.max_capacity:
-                agent['active_orders'].append(order_id)
-                return True
-        return False
+    def release_order(self, order_id: str) -> None:
+        """Release an order assignment."""
+        # TODO: Update agent and order states.
+        self.active_assignments.pop(order_id, None)
 
-    def complete_delivery(self, agent_id: str, order_id: str, destination: Tuple[int, int]):
-        """
-        Issue 10: Called by Teammate B when a delivery is finished.
-        Frees up capacity and updates the agent's new location[cite: 1].
-        """
-        agent = self.agent_registry[agent_id]
-        if order_id in agent['active_orders']:
-            agent['active_orders'].remove(order_id)
-            agent['pos'] = destination
-            agent['completed_count'] += 1
+    def get_agent(self, agent_id: str) -> Optional[Agent]:
+        """Retrieve a registered agent by ID."""
+        return self.agent_registry.get(agent_id)
+
+    def list_agents(self) -> List[Agent]:
+        """Return all registered agents."""
+        return list(self.agent_registry.values())
+
+    def list_pending_orders(self) -> List[Order]:
+        """Return pending orders without mutating the queue."""
+        return [item[2] for item in self.pending_orders]
