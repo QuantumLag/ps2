@@ -44,3 +44,9 @@ class StateManager:
     def list_pending_orders(self) -> List[Order]:
         """Return pending orders without mutating the queue."""
         return [item[2] for item in self.order_queue]
+
+    def assign_order(self, order_id: str, agent_id: str) -> None:
+        """Assign an order to an agent and update both entities."""
+        agent = self.get_agent(agent_id)
+        if agent:
+            agent.assign_order(order_id)

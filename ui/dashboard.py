@@ -380,7 +380,7 @@ def main():
     )
 
     # Header
-    st.title("🚀 Quantum Dispatch Console")
+    st.title(" Quantum Dispatch Console")
     st.caption("Smart Delivery Dispatch System - Simulated Annealing Optimization in Action")
 
     # Initialize system
@@ -426,12 +426,12 @@ def main():
             if st.session_state.optimizer:
                 st.session_state.optimizer.weights = normalized_weights
 
-        # Display normalized values
-        with st.expander("📈 Normalized Values"):
-            col_a, col_b, col_c = st.columns(3)
-            col_a.caption(f"Delivery: {normalized_weights.delivery_time_weight:.2%}")
-            col_b.caption(f"SLA: {normalized_weights.sla_risk_weight:.2%}")
-            col_c.caption(f"Fairness: {normalized_weights.fairness_weight:.2%}")
+            # Display normalized values
+            with st.expander("📈 Normalized Values"):
+                col_a, col_b, col_c = st.columns(3)
+                col_a.caption(f"Delivery: {normalized_weights.delivery_time_weight:.2%}")
+                col_b.caption(f"SLA: {normalized_weights.sla_risk_weight:.2%}")
+                col_c.caption(f"Fairness: {normalized_weights.fairness_weight:.2%}")
 
         st.divider()
 

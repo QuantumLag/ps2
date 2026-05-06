@@ -30,7 +30,6 @@ def verify_files():
         "ui/dashboard.py": "Streamlit dashboard",
         "main.py": "CLI entry point",
         "test_metrics.py": "Metrics tests",
-        "run_dashboard.py": "Dashboard startup",
     }
     
     missing = []
@@ -174,39 +173,18 @@ def verify_end_to_end():
         from data.loader import DataLoader
         from models.agent import Agent
         from models.order import Order
-        from datetime import datetime
         
         data_dir = Path(__file__).parent / "data" / "raw"
         
-        # Load data
-        state_manager = StateManager(
-            agents_path=str(data_dir / "agents.csv"),
-            constraints_path=str(data_dir / "constraints.csv"),
-        )
-        state_manager.load_orders(str(data_dir / "orders.csv"))
-        
+        # Load data using DataLoader (returns lists of objects, not DataFrames)
         loader = DataLoader()
+        agents = loader.load_agents(str(data_dir / "agents.csv"))
+        orders = loader.load_orders(str(data_dir / "orders.csv"))
         environment = loader.load_environment(str(data_dir / "environment_edges.csv"))
         
-        # Convert to objects
-        agents = []
-        for agent_id, info in state_manager.agent_registry.items():
-            agent = Agent(agent_id, info["pos"], info["rating"], 
-                         cumulative_assignments=info["completed_count"])
-            agents.append(agent)
-        
-        orders = []
-        temp_queue = list(state_manager.order_queue)[:10]  # First 10
-        for priority, timestamp, order_id, order_data in temp_queue:
-            order = Order(
-                order_data.get("order_id", order_id),
-                datetime.now(),
-                (order_data.get("location_x", 0), order_data.get("location_y", 0)),
-                int(order_data.get("prep_time_minutes", 10)),
-                order_data.get("priority", "normal"),
-                int(order_data.get("sla_minutes", 60)),
-            )
-            orders.append(order)
+        # Initialize StateManager and add orders
+        state_manager = StateManager(agents)
+        state_manager.add_orders_to_queue(orders)
         
         # Run optimizer
         optimizer = SimulatedAnnealingOptimizer()
@@ -261,7 +239,7 @@ def print_summary():
     print("   • <500ms dispatch cycles (actual: 9-12ms)")
     print("\n📝 Quick Start:")
     print("   1. CLI:       python main.py")
-    print("   2. Dashboard: python run_dashboard.py")
+    print("   2. Dashboard: streamlit run ui/dashboard.py")
     print("   3. Tests:     python test_metrics.py")
 
 
