@@ -9,10 +9,6 @@
 
 #### Describe your approach here. Keep it short and clear.
 
-## Architecture Overview
-
-#### Describe your approach here. Keep it short and clear.
-
 We use a **Quantum-Inspired Simulated Annealing** approach to solve dispatching as a global optimization problem. By treating the fleet as a single interconnected system, we use the Metropolis-Hastings algorithm to "tunnel" through local inefficiencies and find a global energy minimum for city-wide logistics.
 
 - **What is your dispatch strategy?**
